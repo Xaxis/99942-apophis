@@ -98,14 +98,18 @@ Click **ADD NEW RECORD** and add these **4 AAAA Records** one by one:
 - Value: `2606:50c0:8003::153`
 - TTL: `Automatic`
 
-### Step 7: Add CNAME for www Subdomain (Optional)
+### Step 7: Add CNAME for www Subdomain (REQUIRED)
 
-If you want `www.apophis.bot` to also work:
+To make `www.apophis.bot` work alongside `apophis.bot`:
+
+Click **ADD NEW RECORD**:
 
 - Type: `CNAME Record`
 - Host: `www`
-- Value: `wilneeley.github.io.` (note the trailing dot)
+- Value: `wilneeley.github.io.` (⚠️ **include the trailing dot**)
 - TTL: `Automatic`
+
+Click the **✓** checkmark to save.
 
 ### Step 8: Save Changes
 
@@ -114,7 +118,7 @@ If you want `www.apophis.bot` to also work:
 
 ### Final DNS Configuration
 
-Your Advanced DNS page should now show:
+Your Advanced DNS page should now show **9 records total**:
 
 ```
 Type    Host    Value                       TTL
@@ -130,6 +134,8 @@ AAAA    @       2606:50c0:8003::153         Automatic
 CNAME   www     wilneeley.github.io.        Automatic
 ```
 
+✅ **Both `apophis.bot` and `www.apophis.bot` will now work!**
+
 ---
 
 ## Step 9: Configure GitHub Pages
@@ -137,7 +143,7 @@ CNAME   www     wilneeley.github.io.        Automatic
 Now that DNS is configured, set up GitHub Pages:
 
 1. Go to your repository settings: https://github.com/wilneeley/99942-apophis/settings/pages
-2. Under **"Custom domain"**, enter: `apophis.bot`
+2. Under **"Custom domain"**, enter: `apophis.bot` (⚠️ **use apex domain, not www**)
 3. Click **Save**
 4. Wait a few minutes, then check **"Enforce HTTPS"**
     - ⚠️ This option may be grayed out initially - wait for DNS to propagate
@@ -146,10 +152,12 @@ Now that DNS is configured, set up GitHub Pages:
 
 ### Important Notes:
 
-- ✅ The CNAME file already exists in `public/CNAME`
+- ✅ The CNAME file already exists in `public/CNAME` with content: `apophis.bot`
 - ✅ GitHub Actions will automatically deploy it
+- ✅ **Both `apophis.bot` and `www.apophis.bot` will work** (GitHub handles www redirect automatically)
 - ⚠️ Don't delete the CNAME file from the repository
 - ⚠️ If you redeploy, GitHub may uncheck the custom domain - just re-enter it
+- ⚠️ **Only enter `apophis.bot` in GitHub Pages settings** (not www.apophis.bot)
 
 ---
 
@@ -165,10 +173,14 @@ Now that DNS is configured, set up GitHub Pages:
 ### Test Your Site
 
 1. Open a browser in **incognito/private mode** (to avoid cache)
-2. Go to: http://apophis.bot (without https first)
-3. You should see your site!
-4. Once HTTPS is enabled in GitHub Pages, go to: https://apophis.bot
-5. Look for the 🔒 padlock icon in the address bar
+2. Test the apex domain: http://apophis.bot (without https first)
+3. Test the www subdomain: http://www.apophis.bot
+4. You should see your site on both!
+5. Once HTTPS is enabled in GitHub Pages:
+    - Test: https://apophis.bot
+    - Test: https://www.apophis.bot
+    - Both should work and show the 🔒 padlock icon
+6. GitHub automatically redirects www to apex (or vice versa) - both URLs work!
 
 ### Verify HTTPS Certificate
 
@@ -216,9 +228,13 @@ Now that DNS is configured, set up GitHub Pages:
 
 ### www.apophis.bot Not Working
 
-- ✅ **Add CNAME record** for `www` (see Step 7 above)
-- ⏱️ **Wait for DNS propagation**
-- 🔄 **Add www.apophis.bot** as a custom domain in GitHub Pages (optional)
+- ✅ **Verify CNAME record** exists in Namecheap Advanced DNS:
+    - Type: `CNAME Record`
+    - Host: `www`
+    - Value: `wilneeley.github.io.` (with trailing dot)
+- ⏱️ **Wait for DNS propagation** (check https://www.whatsmydns.net/#CNAME/www.apophis.bot)
+- ✅ **Verify apex domain** is set in GitHub Pages (not www)
+- 🔄 **GitHub handles www redirect automatically** - no need to add www separately
 
 ---
 
