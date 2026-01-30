@@ -47,7 +47,8 @@ export function OrbitPath({ elements, color, opacity = 0.15, parentBody, parentS
     // Create a tube geometry for clickable orbit path
     const tubeGeometry = useMemo(() => {
         const curve = new THREE.CatmullRomCurve3(points, true); // true = closed curve
-        return new THREE.TubeGeometry(curve, 200, 0.005, 8, true);
+        // Increased radius from 0.005 to 0.03 for easier clicking
+        return new THREE.TubeGeometry(curve, 200, 0.03, 8, true);
     }, [points]);
 
     return (
@@ -80,13 +81,19 @@ export function OrbitPath({ elements, color, opacity = 0.15, parentBody, parentS
                         new THREE.LineBasicMaterial({
                             color,
                             transparent: true,
-                            opacity: isSelected ? opacity * 3 : opacity, // Brighter when selected
+                            opacity: isSelected ? opacity * 4 : opacity, // Much brighter when selected
                             depthWrite: false,
-                            linewidth: isSelected ? 2 : 1,
                         })
                     )
                 }
             />
+
+            {/* Additional glow effect when selected - visible tube */}
+            {isSelected && (
+                <mesh geometry={tubeGeometry}>
+                    <meshBasicMaterial color={color} transparent opacity={0.3} />
+                </mesh>
+            )}
         </group>
     );
 }
