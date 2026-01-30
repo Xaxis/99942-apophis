@@ -145,15 +145,18 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
     const previousPositionRef = useRef<THREE.Vector3 | null>(null);
     const frameCountRef = useRef<number>(0);
     // Use apophisElements if provided, otherwise use body's orbital elements
-    const currentElements = apophisElements || body.orbitalElements;
+    const currentElements = useMemo(() => apophisElements || body.orbitalElements, [apophisElements, body.orbitalElements]);
     const previousOrbitalElementsRef = useRef<OrbitalElements | undefined>(currentElements);
 
-    // Convert position from meters to AU for visualization
-    const positionAU = [
-        state.position[0] / AU,
-        state.position[2] / AU, // Swap Y and Z for better visualization
-        -state.position[1] / AU,
-    ];
+    // Convert position from meters to AU for visualization - memoized to prevent unnecessary re-renders
+    const positionAU = useMemo(
+        () => [
+            state.position[0] / AU,
+            state.position[2] / AU, // Swap Y and Z for better visualization
+            -state.position[1] / AU,
+        ],
+        [state.position]
+    );
 
     // Update mesh position
     useFrame((frameState) => {
@@ -356,8 +359,9 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
     const controlsRef = useRef<any>(null);
 
     const handleDoubleClick = (index: number) => {
-        // Double-click sets the camera to follow this body
+        // Double-click sets the camera to follow this body and clears selection
         setFollowBodyIndex(index);
+        onBodyClick(-1); // Clear selection by setting to invalid index
     };
 
     return (
