@@ -122,7 +122,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
                             </p>
                             <div className="flex justify-center">
                                 <a
-                                    href="https://github.com/wilneeley/99942-apophis"
+                                    href="https://github.com/Xaxis/99942-apophis"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"

@@ -19,6 +19,7 @@ interface OrbitPathProps {
 
 export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentState, isSelected = false, onClick, onDoubleClick }: OrbitPathProps) {
     const lastClickTimeRef = useRef<number>(0);
+    const singleClickTimerRef = useRef<NodeJS.Timeout | null>(null);
     const points = useMemo(() => {
         const pts: THREE.Vector3[] = [];
         const numPoints = 200;
@@ -66,9 +67,18 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
                         const timeSinceLastClick = now - lastClickTimeRef.current;
 
                         if (timeSinceLastClick < 300 && onDoubleClick) {
+                            // Double-click detected - cancel pending single-click and trigger double-click
+                            if (singleClickTimerRef.current) {
+                                clearTimeout(singleClickTimerRef.current);
+                                singleClickTimerRef.current = null;
+                            }
                             onDoubleClick();
                         } else {
-                            onClick();
+                            // Delay single-click to see if double-click is coming
+                            singleClickTimerRef.current = setTimeout(() => {
+                                onClick();
+                                singleClickTimerRef.current = null;
+                            }, 300);
                         }
 
                         lastClickTimeRef.current = now;

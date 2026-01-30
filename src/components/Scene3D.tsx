@@ -139,6 +139,7 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
     const maxTrailLength = 500;
     const [hovered, setHovered] = useState(false);
     const lastClickTimeRef = useRef<number>(0);
+    const singleClickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Convert position from meters to AU for visualization
     const positionAU = [
@@ -179,14 +180,14 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
     });
 
     // Calculate body size for visualization with proper scaling
+    // NOTE: Body sizes are exaggerated for visibility - not to scale with orbital distances
     let visualRadius = 0.01; // Default size in AU
     if (index === 0) {
         // Sun - large and visible
         visualRadius = 0.05;
     } else if (body.name === "Moon") {
-        // Moon - much smaller than Earth (radius ratio ~1:3.7)
-        // Earth visual radius is 0.02, so Moon should be ~0.005
-        visualRadius = 0.005;
+        // Moon - visible but smaller than planets
+        visualRadius = 0.008;
     } else if (body.name === "99942 Apophis") {
         // Apophis - tiny asteroid, but make it visible
         visualRadius = 0.015;
@@ -212,9 +213,18 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                     const timeSinceLastClick = now - lastClickTimeRef.current;
 
                     if (timeSinceLastClick < 300) {
+                        // Double-click detected - cancel pending single-click and trigger double-click
+                        if (singleClickTimerRef.current) {
+                            clearTimeout(singleClickTimerRef.current);
+                            singleClickTimerRef.current = null;
+                        }
                         onDoubleClick();
                     } else {
-                        onClick();
+                        // Delay single-click to see if double-click is coming
+                        singleClickTimerRef.current = setTimeout(() => {
+                            onClick();
+                            singleClickTimerRef.current = null;
+                        }, 300);
                     }
 
                     lastClickTimeRef.current = now;
@@ -272,9 +282,18 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                                     const timeSinceLastClick = now - lastClickTimeRef.current;
 
                                     if (timeSinceLastClick < 300) {
+                                        // Double-click detected - cancel pending single-click and trigger double-click
+                                        if (singleClickTimerRef.current) {
+                                            clearTimeout(singleClickTimerRef.current);
+                                            singleClickTimerRef.current = null;
+                                        }
                                         onDoubleClick();
                                     } else {
-                                        onClick();
+                                        // Delay single-click to see if double-click is coming
+                                        singleClickTimerRef.current = setTimeout(() => {
+                                            onClick();
+                                            singleClickTimerRef.current = null;
+                                        }, 300);
                                     }
 
                                     lastClickTimeRef.current = now;

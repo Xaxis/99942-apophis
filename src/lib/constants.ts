@@ -115,7 +115,9 @@ export const MOON: CelestialBody = {
     parentBodyIndex: 3, // Orbits Earth (index 3 in BODIES array)
     orbitalElements: {
         // Geocentric orbital elements (Moon orbits Earth)
-        semiMajorAxis: 0.00257, // 384,400 km = 0.00257 AU
+        // NOTE: Semi-major axis is EXAGGERATED for visualization (real: 0.00257 AU)
+        // Scaled up by ~20x so Moon orbit is visible outside Earth's visual sphere
+        semiMajorAxis: 0.05, // Exaggerated from 0.00257 AU for visibility
         eccentricity: 0.0549,
         inclination: 5.145, // Relative to ecliptic
         longitudeOfAscendingNode: 125.08,
