@@ -1,0 +1,35 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="asteroidGrad" cx="50%" cy="40%">
+      <stop offset="0%" style="stop-color:#cbd5e1"/>
+      <stop offset="100%" style="stop-color:#64748b"/>
+    </radialGradient>
+    <radialGradient id="earthGrad" cx="50%" cy="50%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Orbital path -->
+  <ellipse cx="64" cy="64" rx="50" ry="38" 
+           stroke="#60a5fa" stroke-width="2" fill="none" 
+           opacity="0.5"/>
+  
+  <!-- Earth -->
+  <circle cx="64" cy="64" r="12" fill="url(#earthGrad)"/>
+  <circle cx="64" cy="64" r="12" fill="#60a5fa" opacity="0.2"/>
+  
+  <!-- Apophis asteroid -->
+  <g transform="translate(114, 64)">
+    <circle r="8" fill="url(#asteroidGrad)"/>
+    <circle cx="-2" cy="-2" r="1.5" fill="#475569" opacity="0.7"/>
+    <circle cx="1" cy="1" r="1" fill="#475569" opacity="0.7"/>
+    <ellipse cx="-3" cy="-3" rx="2" ry="1.5" fill="#e2e8f0" opacity="0.4"/>
+  </g>
+  
+  <!-- Motion trail -->
+  <path d="M 114,64 Q 95,58 85,62" 
+        stroke="#94a3b8" stroke-width="1.5" fill="none" 
+        opacity="0.3" stroke-linecap="round"/>
+</svg>
+
