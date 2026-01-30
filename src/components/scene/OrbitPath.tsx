@@ -104,7 +104,8 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
                             color,
                             transparent: true,
                             opacity: isSelected ? opacity * 4 : opacity, // Much brighter when selected
-                            depthWrite: false,
+                            depthWrite: true,
+                            depthTest: true,
                         })
                     )
                 }

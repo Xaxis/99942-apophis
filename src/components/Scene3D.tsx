@@ -4,7 +4,7 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
-import { CelestialBody, BodyState } from "@/lib/types";
+import { CelestialBody, BodyState, OrbitalElements } from "@/lib/types";
 import { AU, SUN } from "@/lib/constants";
 import { StarField } from "./scene/StarField";
 import { CelestialBodyMesh } from "./scene/CelestialBodyMesh";
@@ -21,6 +21,7 @@ interface Scene3DProps {
     showOrbits: boolean;
     selectedBodyIndex: number | null;
     onBodyClick: (index: number) => void;
+    apophisElements?: OrbitalElements; // Dynamic Apophis orbital elements
 }
 
 interface CameraFollowControllerProps {
@@ -42,6 +43,7 @@ interface BodyMeshProps {
     onDoubleClick: () => void;
     bodies: CelestialBody[];
     bodyStates: BodyState[];
+    apophisElements?: OrbitalElements;
 }
 
 /**
@@ -132,7 +134,7 @@ function CameraFollowController({ followBodyIndex, bodyStates, bodies, controlsR
     return null;
 }
 
-function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelected, onClick, onDoubleClick, bodies, bodyStates }: BodyMeshProps) {
+function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelected, onClick, onDoubleClick, bodies, bodyStates, apophisElements }: BodyMeshProps) {
     const meshRef = useRef<THREE.Mesh>(null);
     const trailRef = useRef<THREE.BufferGeometry>(null);
     const trailPositions = useRef<THREE.Vector3[]>([]);
@@ -140,6 +142,11 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
     const [hovered, setHovered] = useState(false);
     const lastClickTimeRef = useRef<number>(0);
     const singleClickTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const previousPositionRef = useRef<THREE.Vector3 | null>(null);
+    const frameCountRef = useRef<number>(0);
+    // Use apophisElements if provided, otherwise use body's orbital elements
+    const currentElements = apophisElements || body.orbitalElements;
+    const previousOrbitalElementsRef = useRef<OrbitalElements | undefined>(currentElements);
 
     // Convert position from meters to AU for visualization
     const positionAU = [
@@ -158,6 +165,29 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                 // Don't show trail for Sun
                 const currentPos = new THREE.Vector3(positionAU[0], positionAU[1], positionAU[2]);
 
+                // Detect orbital elements change (for Apophis when controls are adjusted)
+                const activeElements = apophisElements || body.orbitalElements;
+                if (activeElements && previousOrbitalElementsRef.current) {
+                    const elementsChanged =
+                        activeElements.semiMajorAxis !== previousOrbitalElementsRef.current.semiMajorAxis ||
+                        activeElements.eccentricity !== previousOrbitalElementsRef.current.eccentricity ||
+                        activeElements.inclination !== previousOrbitalElementsRef.current.inclination ||
+                        activeElements.longitudeOfAscendingNode !== previousOrbitalElementsRef.current.longitudeOfAscendingNode ||
+                        activeElements.argumentOfPeriapsis !== previousOrbitalElementsRef.current.argumentOfPeriapsis ||
+                        activeElements.meanAnomaly !== previousOrbitalElementsRef.current.meanAnomaly;
+
+                    if (elementsChanged) {
+                        trailPositions.current = [];
+                        previousOrbitalElementsRef.current = activeElements;
+                    }
+                }
+
+                // Detect scenario change: if position jumped more than 1.0 AU, clear trail
+                if (previousPositionRef.current && currentPos.distanceTo(previousPositionRef.current) > 1.0) {
+                    trailPositions.current = [];
+                }
+                previousPositionRef.current = currentPos.clone();
+
                 // Only add new position if it's different enough from the last one
                 const lastPos = trailPositions.current[trailPositions.current.length - 1];
                 if (!lastPos || currentPos.distanceTo(lastPos) > 0.0001) {
@@ -166,15 +196,16 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                     if (trailPositions.current.length > maxTrailLength) {
                         trailPositions.current.shift();
                     }
+                }
 
-                    // Only update trail geometry every 3 frames to reduce performance impact
-                    if (trailRef.current && trailPositions.current.length > 1 && frameState.clock.elapsedTime % 0.05 < 0.016) {
-                        // Dispose old geometry and create new one to avoid buffer size errors
-                        trailRef.current.dispose();
-                        const newGeometry = new THREE.BufferGeometry().setFromPoints(trailPositions.current);
-                        trailRef.current.copy(newGeometry);
-                        newGeometry.dispose();
-                    }
+                // Update trail geometry every 3 frames to reduce performance impact
+                frameCountRef.current++;
+                if (trailRef.current && trailPositions.current.length > 1 && frameCountRef.current % 3 === 0) {
+                    // Dispose old geometry and create new one to avoid buffer size errors
+                    trailRef.current.dispose();
+                    const newGeometry = new THREE.BufferGeometry().setFromPoints(trailPositions.current);
+                    trailRef.current.copy(newGeometry);
+                    newGeometry.dispose();
                 }
             }
         }
@@ -301,9 +332,9 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                 </line>
             )}
 
-            {index > 0 && showOrbit && body.orbitalElements && body.parentBodyIndex !== undefined && (
+            {index > 0 && showOrbit && currentElements && body.parentBodyIndex !== undefined && (
                 <OrbitPath
-                    elements={body.orbitalElements}
+                    elements={currentElements}
                     color={body.color}
                     parentBody={bodies[body.parentBodyIndex]}
                     parentState={bodyStates[body.parentBodyIndex]}
@@ -313,14 +344,14 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                 />
             )}
 
-            {index > 0 && showOrbit && body.orbitalElements && body.parentBodyIndex === undefined && (
-                <OrbitPath elements={body.orbitalElements} color={body.color} isSelected={isSelected} onClick={onClick} onDoubleClick={onDoubleClick} />
+            {index > 0 && showOrbit && currentElements && body.parentBodyIndex === undefined && (
+                <OrbitPath elements={currentElements} color={body.color} isSelected={isSelected} onClick={onClick} onDoubleClick={onDoubleClick} />
             )}
         </>
     );
 }
 
-export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits, selectedBodyIndex, onBodyClick }: Scene3DProps) {
+export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits, selectedBodyIndex, onBodyClick, apophisElements }: Scene3DProps) {
     const [followBodyIndex, setFollowBodyIndex] = useState<number | null>(null);
     const controlsRef = useRef<any>(null);
 
@@ -355,6 +386,7 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
                     onDoubleClick={() => handleDoubleClick(index)}
                     bodies={bodies}
                     bodyStates={bodyStates}
+                    apophisElements={body.name === "99942 Apophis" ? apophisElements : undefined}
                 />
             ))}
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { AlertTriangle } from "lucide-react";
 import { OrbitalElements } from "@/lib/types";
 import { calculateImpactProbability, calculateTorinoScale, getRiskLevel, calculateMOID } from "@/lib/physics/risk-calculator";
@@ -15,13 +15,15 @@ export function RiskAssessment({ apophisElements, currentDistance }: RiskAssessm
     const [isMinimized, setIsMinimized] = useState(true);
     const [probability, setProbability] = useState(0);
     const [animatedProbability, setAnimatedProbability] = useState(0);
+    const previousProbabilityRef = useRef(0);
 
     useEffect(() => {
         const newProbability = calculateImpactProbability(apophisElements, currentDistance);
         setProbability(newProbability);
 
         // Animate the probability change
-        const startValue = animatedProbability;
+        let animationId: number;
+        const startValue = previousProbabilityRef.current;
         const endValue = newProbability;
         const duration = 500; // ms
         const startTime = Date.now();
@@ -37,12 +39,29 @@ export function RiskAssessment({ apophisElements, currentDistance }: RiskAssessm
             setAnimatedProbability(current);
 
             if (progress < 1) {
-                requestAnimationFrame(animate);
+                animationId = requestAnimationFrame(animate);
+            } else {
+                previousProbabilityRef.current = endValue;
             }
         };
 
-        requestAnimationFrame(animate);
-    }, [apophisElements, currentDistance]);
+        animationId = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [
+        apophisElements.semiMajorAxis,
+        apophisElements.eccentricity,
+        apophisElements.inclination,
+        apophisElements.longitudeOfAscendingNode,
+        apophisElements.argumentOfPeriapsis,
+        apophisElements.meanAnomaly,
+        currentDistance,
+    ]);
 
     const torinoScale = calculateTorinoScale(probability);
     const moid = calculateMOID(apophisElements);

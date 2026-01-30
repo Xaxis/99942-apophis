@@ -47,6 +47,8 @@ export default function ApophisSimulator() {
     const simulatorRef = useRef<NBodySimulator | null>(null);
     const startTimeRef = useRef(new Date());
     const simulationTimeRef = useRef(0);
+    const apophisElementsRef = useRef(apophisElements);
+    const configRef = useRef(config);
 
     // Initialize simulation
     useEffect(() => {
@@ -71,6 +73,12 @@ export default function ApophisSimulator() {
         setBodyStates(initialStates);
     }, [apophisElements, config.integrationMethod]);
 
+    // Update refs when values change
+    useEffect(() => {
+        apophisElementsRef.current = apophisElements;
+        configRef.current = config;
+    }, [apophisElements, config]);
+
     // Animation loop
     useEffect(() => {
         if (!isPlaying || !simulatorRef.current) return;
@@ -82,18 +90,19 @@ export default function ApophisSimulator() {
             const deltaTime = (currentAnimationTime - lastTime) / 1000; // Convert to seconds
             lastTime = currentAnimationTime;
 
-            const simulationDelta = deltaTime * config.timeScale;
+            const currentConfig = configRef.current;
+            const simulationDelta = deltaTime * currentConfig.timeScale;
 
             // Step simulation
-            if (config.enablePerturbations) {
-                simulatorRef.current!.step(config.timeStep);
+            if (currentConfig.enablePerturbations) {
+                simulatorRef.current!.step(currentConfig.timeStep);
             } else {
                 // Simple 2-body mechanics
                 const newStates: BodyState[] = BODIES.map((body, i) => {
                     if (!body.orbitalElements) {
                         return { position: [0, 0, 0], velocity: [0, 0, 0] };
                     }
-                    const elements = body.name === "99942 Apophis" ? apophisElements : body.orbitalElements;
+                    const elements = body.name === "99942 Apophis" ? apophisElementsRef.current : body.orbitalElements;
 
                     // If this body has a parent (e.g., Moon orbits Earth), calculate relative to parent
                     if (body.parentBodyIndex !== undefined) {
@@ -107,7 +116,7 @@ export default function ApophisSimulator() {
                 simulatorRef.current!.resetStates(newStates);
             }
 
-            simulationTimeRef.current += config.timeStep;
+            simulationTimeRef.current += currentConfig.timeStep;
 
             // Update states
             const states = simulatorRef.current!.getStates();
@@ -135,7 +144,8 @@ export default function ApophisSimulator() {
                 cancelAnimationFrame(animationId);
             }
         };
-    }, [isPlaying, config, apophisElements]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isPlaying]);
 
     const handleReset = () => {
         simulationTimeRef.current = 0;
@@ -166,6 +176,7 @@ export default function ApophisSimulator() {
                 showOrbits={showOrbits}
                 selectedBodyIndex={selectedBodyIndex}
                 onBodyClick={setSelectedBodyIndex}
+                apophisElements={apophisElements}
             />
 
             <div className="absolute top-4 left-4 flex items-start gap-2 z-10">
