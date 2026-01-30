@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { OrbitalElements, BodyState, CelestialBody } from "@/lib/types";
 import { calculateOrbitalState } from "@/lib/physics/orbital-mechanics";
@@ -14,9 +14,11 @@ interface OrbitPathProps {
     parentState?: BodyState;
     isSelected?: boolean;
     onClick?: () => void;
+    onDoubleClick?: () => void;
 }
 
-export function OrbitPath({ elements, color, opacity = 0.15, parentBody, parentState, isSelected = false, onClick }: OrbitPathProps) {
+export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentState, isSelected = false, onClick, onDoubleClick }: OrbitPathProps) {
+    const lastClickTimeRef = useRef<number>(0);
     const points = useMemo(() => {
         const pts: THREE.Vector3[] = [];
         const numPoints = 200;
@@ -59,7 +61,17 @@ export function OrbitPath({ elements, color, opacity = 0.15, parentBody, parentS
                     geometry={tubeGeometry}
                     onClick={(e) => {
                         e.stopPropagation();
-                        onClick();
+
+                        const now = Date.now();
+                        const timeSinceLastClick = now - lastClickTimeRef.current;
+
+                        if (timeSinceLastClick < 300 && onDoubleClick) {
+                            onDoubleClick();
+                        } else {
+                            onClick();
+                        }
+
+                        lastClickTimeRef.current = now;
                     }}
                     onPointerOver={(e) => {
                         e.stopPropagation();

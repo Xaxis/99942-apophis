@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X, Github } from "lucide-react";
 
 interface AboutModalProps {
     onClose: () => void;
@@ -116,10 +116,21 @@ export function AboutModal({ onClose }: AboutModalProps) {
 
                     <section className="border-t border-slate-700 pt-6">
                         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
-                            <p className="text-slate-300 text-sm text-center">
+                            <p className="text-slate-300 text-sm text-center mb-4">
                                 <strong className="text-white">apophis.bot</strong> - An interactive educational tool for exploring orbital mechanics and near-Earth asteroid
                                 dynamics. Built with React, Next.js, Three.js, and TypeScript.
                             </p>
+                            <div className="flex justify-center">
+                                <a
+                                    href="https://github.com/wilneeley/99942-apophis"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+                                >
+                                    <Github size={18} />
+                                    <span className="text-sm font-medium">View on GitHub</span>
+                                </a>
+                            </div>
                         </div>
                     </section>
                 </div>
