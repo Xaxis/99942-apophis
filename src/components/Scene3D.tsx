@@ -149,7 +149,7 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
     ];
 
     // Update mesh position
-    useFrame(() => {
+    useFrame((frameState) => {
         if (meshRef.current) {
             meshRef.current.position.set(positionAU[0], positionAU[1], positionAU[2]);
 
@@ -167,7 +167,8 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                         trailPositions.current.shift();
                     }
 
-                    if (trailRef.current && trailPositions.current.length > 1) {
+                    // Only update trail geometry every 3 frames to reduce performance impact
+                    if (trailRef.current && trailPositions.current.length > 1 && frameState.clock.elapsedTime % 0.05 < 0.016) {
                         // Dispose old geometry and create new one to avoid buffer size errors
                         trailRef.current.dispose();
                         const newGeometry = new THREE.BufferGeometry().setFromPoints(trailPositions.current);
@@ -239,25 +240,13 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                     document.body.style.cursor = "default";
                 }}
             >
-                <sphereGeometry args={[visualRadius * (isSelected ? 1.5 : 1), 32, 32]} />
+                <sphereGeometry args={[visualRadius, 32, 32]} />
                 {index === 0 ? (
                     <meshBasicMaterial color={body.color} />
                 ) : (
-                    <meshStandardMaterial
-                        color={body.color}
-                        emissive={isSelected || hovered ? body.color : body.color}
-                        emissiveIntensity={isSelected ? 0.8 : hovered ? 0.5 : 0.2}
-                    />
+                    <meshStandardMaterial color={body.color} emissive={body.color} emissiveIntensity={isSelected ? 0.8 : hovered ? 0.5 : 0.2} />
                 )}
             </mesh>
-
-            {/* Selection ring */}
-            {isSelected && (
-                <mesh position={[positionAU[0], positionAU[1], positionAU[2]]} rotation={[Math.PI / 2, 0, 0]}>
-                    <ringGeometry args={[visualRadius * 2, visualRadius * 2.2, 32]} />
-                    <meshBasicMaterial color={body.color} transparent opacity={0.8} side={THREE.DoubleSide} />
-                </mesh>
-            )}
 
             {showLabel &&
                 (() => {
@@ -369,7 +358,16 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
                 />
             ))}
 
-            <OrbitControls ref={controlsRef} enableDamping dampingFactor={0.05} minDistance={0.5} maxDistance={100} />
+            <OrbitControls
+                ref={controlsRef}
+                enableDamping
+                dampingFactor={0.05}
+                minDistance={0.5}
+                maxDistance={100}
+                makeDefault
+                // Note: The wheel event passive warning is a known issue with OrbitControls
+                // It doesn't affect functionality - the controls work correctly
+            />
         </Canvas>
     );
 }
