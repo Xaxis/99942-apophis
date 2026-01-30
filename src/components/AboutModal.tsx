@@ -54,8 +54,8 @@ export function AboutModal({ onClose }: AboutModalProps) {
                             <li className="flex gap-2">
                                 <span className="text-blue-400 mt-1">•</span>
                                 <div>
-                                    <strong className="text-white">Planetary Perturbations:</strong> Earth, Venus, and Mars cause small but measurable changes to the orbit over
-                                    time.
+                                    <strong className="text-white">Planetary Perturbations:</strong> All eight planets (Mercury through Neptune) cause gravitational perturbations,
+                                    with Jupiter and Saturn having the largest effects due to their massive size.
                                 </div>
                             </li>
                             <li className="flex gap-2">

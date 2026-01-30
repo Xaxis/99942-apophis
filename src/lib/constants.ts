@@ -112,14 +112,122 @@ export const MOON: CelestialBody = {
     mass: 7.342e22, // Earth's moon - affects Earth-asteroid interactions
     radius: 1737,
     color: 0xaaaaaa,
+    parentBodyIndex: 3, // Orbits Earth (index 3 in BODIES array)
     orbitalElements: {
-        // Moon orbits Earth, simplified as Earth-like orbit with offset
-        semiMajorAxis: 1.00257,
+        // Geocentric orbital elements (Moon orbits Earth)
+        semiMajorAxis: 0.00257, // 384,400 km = 0.00257 AU
         eccentricity: 0.0549,
-        inclination: 5.145,
+        inclination: 5.145, // Relative to ecliptic
         longitudeOfAscendingNode: 125.08,
         argumentOfPeriapsis: 318.15,
-        meanAnomaly: 135.27,
+        meanAnomaly: 0.0,
+    },
+};
+
+export const URANUS: CelestialBody = {
+    name: "Uranus",
+    mass: 8.681e25, // Ice giant - affects outer solar system dynamics
+    radius: 25362,
+    color: 0x4fd0e7,
+    orbitalElements: {
+        // NASA JPL data (1800 AD - 2050 AD)
+        semiMajorAxis: 19.18916464,
+        eccentricity: 0.04725744,
+        inclination: 0.77263783,
+        longitudeOfAscendingNode: 74.01692503,
+        argumentOfPeriapsis: 170.9542763 - 74.01692503, // ω = ϖ - Ω
+        meanAnomaly: 313.23810451 - 170.9542763, // M = L - ϖ
+    },
+};
+
+export const NEPTUNE: CelestialBody = {
+    name: "Neptune",
+    mass: 1.02413e26, // Outermost ice giant - affects Kuiper belt and distant objects
+    radius: 24622,
+    color: 0x4166f5,
+    orbitalElements: {
+        // NASA JPL data (1800 AD - 2050 AD)
+        semiMajorAxis: 30.06992276,
+        eccentricity: 0.00859048,
+        inclination: 1.77004347,
+        longitudeOfAscendingNode: 131.78422574,
+        argumentOfPeriapsis: 44.96476227 - 131.78422574, // ω = ϖ - Ω
+        meanAnomaly: -55.12002969 - 44.96476227, // M = L - ϖ
+    },
+};
+
+export const CERES: CelestialBody = {
+    name: "1 Ceres",
+    mass: 9.3839e20, // kg
+    radius: 469.7, // km
+    color: 0x8b8680,
+    orbitalElements: {
+        semiMajorAxis: 2.77, // AU
+        eccentricity: 0.0785,
+        inclination: 10.6, // degrees
+        longitudeOfAscendingNode: 80.3, // degrees
+        argumentOfPeriapsis: 73.6, // degrees
+        meanAnomaly: 291.4, // degrees
+    },
+};
+
+export const PALLAS: CelestialBody = {
+    name: "2 Pallas",
+    mass: 2.04e20, // kg
+    radius: 256, // km (mean radius)
+    color: 0x9b9b9b,
+    orbitalElements: {
+        semiMajorAxis: 2.77, // AU
+        eccentricity: 0.2302,
+        inclination: 34.93, // degrees
+        longitudeOfAscendingNode: 172.9, // degrees
+        argumentOfPeriapsis: 310.9, // degrees
+        meanAnomaly: 40.6, // degrees
+    },
+};
+
+export const VESTA: CelestialBody = {
+    name: "4 Vesta",
+    mass: 2.59e20, // kg
+    radius: 262.7, // km (mean radius)
+    color: 0xb8a898,
+    orbitalElements: {
+        semiMajorAxis: 2.36, // AU
+        eccentricity: 0.0894,
+        inclination: 7.1422, // degrees
+        longitudeOfAscendingNode: 103.71, // degrees
+        argumentOfPeriapsis: 151.66, // degrees
+        meanAnomaly: 169.4, // degrees
+    },
+};
+
+export const HYGIEA: CelestialBody = {
+    name: "10 Hygiea",
+    mass: 8.32e19, // kg
+    radius: 217, // km (mean radius)
+    color: 0x7a7a7a,
+    orbitalElements: {
+        semiMajorAxis: 3.14, // AU
+        eccentricity: 0.1146,
+        inclination: 3.84, // degrees
+        longitudeOfAscendingNode: 283.2, // degrees
+        argumentOfPeriapsis: 312.4, // degrees
+        meanAnomaly: 316.8, // degrees
+    },
+};
+
+export const PLUTO: CelestialBody = {
+    name: "134340 Pluto",
+    mass: 1.3025e22, // kg
+    radius: 1188.3, // km
+    color: 0xc9b5a0, // tan/beige color
+    orbitalElements: {
+        semiMajorAxis: 39.482, // AU
+        eccentricity: 0.2488,
+        inclination: 17.16, // degrees
+        longitudeOfAscendingNode: 110.299, // degrees
+        argumentOfPeriapsis: 113.834, // degrees
+        meanAnomaly: 14.53, // degrees
     },
 };
 
@@ -138,7 +246,7 @@ export const APOPHIS: CelestialBody = {
     },
 };
 
-export const BODIES = [SUN, MERCURY, VENUS, EARTH, MOON, MARS, JUPITER, SATURN, APOPHIS];
+export const BODIES = [SUN, MERCURY, VENUS, EARTH, MOON, MARS, CERES, VESTA, PALLAS, HYGIEA, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, APOPHIS];
 
 // Preset Simulations
 export interface PresetSimulation {

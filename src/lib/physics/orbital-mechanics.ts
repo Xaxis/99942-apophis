@@ -29,7 +29,7 @@ function solveKeplerEquation(M: number, e: number, tolerance = 1e-6): number {
 /**
  * Calculate orbital state from orbital elements
  */
-export function calculateOrbitalState(elements: OrbitalElements, centralBodyMass: number, time: number = 0): BodyState {
+export function calculateOrbitalState(elements: OrbitalElements, centralBodyMass: number, time: number = 0, parentBodyState?: BodyState): BodyState {
     const { semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis, meanAnomaly } = elements;
 
     // Convert to radians
@@ -83,6 +83,14 @@ export function calculateOrbitalState(elements: OrbitalElements, centralBodyMass
     const vx = (cosOmega * cosomega - sinOmega * sinomega * cosi) * vxOrbital + (-cosOmega * sinomega - sinOmega * cosomega * cosi) * vyOrbital;
     const vy = (sinOmega * cosomega + cosOmega * sinomega * cosi) * vxOrbital + (-sinOmega * sinomega + cosOmega * cosomega * cosi) * vyOrbital;
     const vz = sinomega * sini * vxOrbital + cosomega * sini * vyOrbital;
+
+    // If this body orbits another body (e.g., Moon orbits Earth), add parent's position and velocity
+    if (parentBodyState) {
+        return {
+            position: [x + parentBodyState.position[0], y + parentBodyState.position[1], z + parentBodyState.position[2]],
+            velocity: [vx + parentBodyState.velocity[0], vy + parentBodyState.velocity[1], vz + parentBodyState.velocity[2]],
+        };
+    }
 
     return {
         position: [x, y, z],

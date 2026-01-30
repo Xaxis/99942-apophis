@@ -5,11 +5,13 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { CelestialBody, BodyState } from "@/lib/types";
-import { AU } from "@/lib/constants";
+import { AU, SUN } from "@/lib/constants";
 import { StarField } from "./scene/StarField";
 import { CelestialBodyMesh } from "./scene/CelestialBodyMesh";
 import { Trail } from "./scene/Trail";
 import { OrbitPath } from "./scene/OrbitPath";
+import { AsteroidBelt } from "./scene/AsteroidBelt";
+import { calculateOrbitalState } from "@/lib/physics/orbital-mechanics";
 
 interface Scene3DProps {
     bodies: CelestialBody[];
@@ -30,9 +32,11 @@ interface BodyMeshProps {
     index: number;
     isSelected: boolean;
     onClick: () => void;
+    bodies: CelestialBody[];
+    bodyStates: BodyState[];
 }
 
-function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelected, onClick }: BodyMeshProps) {
+function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelected, onClick, bodies, bodyStates }: BodyMeshProps) {
     const meshRef = useRef<THREE.Mesh>(null);
     const trailRef = useRef<THREE.Points>(null);
     const trailPositions = useRef<THREE.Vector3[]>([]);
@@ -138,7 +142,27 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                 </points>
             )}
 
-            {index > 0 && showOrbit && body.orbitalElements && <OrbitPath elements={body.orbitalElements} color={body.color} />}
+            {index > 0 &&
+                showOrbit &&
+                body.orbitalElements &&
+                (() => {
+                    // If this body has a parent (e.g., Moon orbits Earth), pass parent info to OrbitPath
+                    if (body.parentBodyIndex !== undefined) {
+                        const parentBody = bodies[body.parentBodyIndex];
+                        const parentState = bodyStates[body.parentBodyIndex];
+                        return (
+                            <OrbitPath
+                                elements={body.orbitalElements}
+                                color={body.color}
+                                parentBody={parentBody}
+                                parentState={parentState}
+                                isSelected={isSelected}
+                                onClick={onClick}
+                            />
+                        );
+                    }
+                    return <OrbitPath elements={body.orbitalElements} color={body.color} isSelected={isSelected} onClick={onClick} />;
+                })()}
         </>
     );
 }
@@ -151,6 +175,7 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
             <pointLight position={[0, 0, 0]} intensity={2} />
 
             <StarField />
+            <AsteroidBelt />
 
             {bodies.map((body, index) => (
                 <BodyMesh
@@ -163,10 +188,12 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
                     index={index}
                     isSelected={selectedBodyIndex === index}
                     onClick={() => onBodyClick(index)}
+                    bodies={bodies}
+                    bodyStates={bodyStates}
                 />
             ))}
 
-            <OrbitControls enableDamping dampingFactor={0.05} minDistance={0.5} maxDistance={20} />
+            <OrbitControls enableDamping dampingFactor={0.05} minDistance={0.5} maxDistance={100} />
         </Canvas>
     );
 }

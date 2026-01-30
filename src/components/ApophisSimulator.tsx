@@ -50,11 +50,19 @@ export default function ApophisSimulator() {
 
     // Initialize simulation
     useEffect(() => {
-        const initialStates: BodyState[] = BODIES.map((body) => {
+        const initialStates: BodyState[] = BODIES.map((body, index) => {
             if (!body.orbitalElements) {
                 return { position: [0, 0, 0], velocity: [0, 0, 0] };
             }
             const elements = body.name === "99942 Apophis" ? apophisElements : body.orbitalElements;
+
+            // If this body has a parent (e.g., Moon orbits Earth), calculate relative to parent
+            if (body.parentBodyIndex !== undefined) {
+                const parentBody = BODIES[body.parentBodyIndex];
+                const parentState = calculateOrbitalState(parentBody.orbitalElements!, SUN.mass, 0);
+                return calculateOrbitalState(elements, parentBody.mass, 0, parentState);
+            }
+
             return calculateOrbitalState(elements, SUN.mass, 0);
         });
 
@@ -86,6 +94,14 @@ export default function ApophisSimulator() {
                         return { position: [0, 0, 0], velocity: [0, 0, 0] };
                     }
                     const elements = body.name === "99942 Apophis" ? apophisElements : body.orbitalElements;
+
+                    // If this body has a parent (e.g., Moon orbits Earth), calculate relative to parent
+                    if (body.parentBodyIndex !== undefined) {
+                        const parentBody = BODIES[body.parentBodyIndex];
+                        const parentState = calculateOrbitalState(parentBody.orbitalElements!, SUN.mass, simulationTimeRef.current);
+                        return calculateOrbitalState(elements, parentBody.mass, simulationTimeRef.current, parentState);
+                    }
+
                     return calculateOrbitalState(elements, SUN.mass, simulationTimeRef.current);
                 });
                 simulatorRef.current!.resetStates(newStates);

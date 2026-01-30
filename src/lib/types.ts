@@ -19,6 +19,7 @@ export interface CelestialBody {
     radius: number; // km
     color: number; // hex color
     orbitalElements?: OrbitalElements;
+    parentBodyIndex?: number; // Index of parent body in BODIES array (for moons)
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import * as THREE from "three";
-import { OrbitalElements } from "@/lib/types";
+import { OrbitalElements, BodyState, CelestialBody } from "@/lib/types";
 import { calculateOrbitalState } from "@/lib/physics/orbital-mechanics";
 import { AU, SUN } from "@/lib/constants";
 
@@ -10,16 +10,23 @@ interface OrbitPathProps {
     elements: OrbitalElements;
     color: number;
     opacity?: number;
+    parentBody?: CelestialBody;
+    parentState?: BodyState;
+    isSelected?: boolean;
+    onClick?: () => void;
 }
 
-export function OrbitPath({ elements, color, opacity = 0.15 }: OrbitPathProps) {
+export function OrbitPath({ elements, color, opacity = 0.15, parentBody, parentState, isSelected = false, onClick }: OrbitPathProps) {
     const points = useMemo(() => {
         const pts: THREE.Vector3[] = [];
         const numPoints = 200;
 
         for (let i = 0; i <= numPoints; i++) {
             const meanAnomaly = (i / numPoints) * 360;
-            const state = calculateOrbitalState({ ...elements, meanAnomaly }, SUN.mass, 0);
+
+            // If this orbit has a parent body (e.g., Moon around Earth), calculate relative to parent
+            const centralMass = parentBody ? parentBody.mass : SUN.mass;
+            const state = calculateOrbitalState({ ...elements, meanAnomaly }, centralMass, 0, parentState);
 
             // Convert from meters to AU and apply Y/Z swap for visualization
             const x = state.position[0] / AU;
@@ -30,27 +37,56 @@ export function OrbitPath({ elements, color, opacity = 0.15 }: OrbitPathProps) {
         }
 
         return pts;
-    }, [elements]);
+    }, [elements, parentBody, parentState]);
 
     const lineGeometry = useMemo(() => {
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         return geometry;
     }, [points]);
 
+    // Create a tube geometry for clickable orbit path
+    const tubeGeometry = useMemo(() => {
+        const curve = new THREE.CatmullRomCurve3(points, true); // true = closed curve
+        return new THREE.TubeGeometry(curve, 200, 0.005, 8, true);
+    }, [points]);
+
     return (
-        <primitive
-            object={
-                new THREE.Line(
-                    lineGeometry,
-                    new THREE.LineBasicMaterial({
-                        color,
-                        transparent: true,
-                        opacity,
-                        depthWrite: false,
-                        linewidth: 1, // Thin line for subdued appearance
-                    })
-                )
-            }
-        />
+        <group>
+            {/* Invisible clickable tube for interaction */}
+            {onClick && (
+                <mesh
+                    geometry={tubeGeometry}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onClick();
+                    }}
+                    onPointerOver={(e) => {
+                        e.stopPropagation();
+                        document.body.style.cursor = "pointer";
+                    }}
+                    onPointerOut={() => {
+                        document.body.style.cursor = "default";
+                    }}
+                >
+                    <meshBasicMaterial transparent opacity={0} />
+                </mesh>
+            )}
+
+            {/* Visible orbit line */}
+            <primitive
+                object={
+                    new THREE.Line(
+                        lineGeometry,
+                        new THREE.LineBasicMaterial({
+                            color,
+                            transparent: true,
+                            opacity: isSelected ? opacity * 3 : opacity, // Brighter when selected
+                            depthWrite: false,
+                            linewidth: isSelected ? 2 : 1,
+                        })
+                    )
+                }
+            />
+        </group>
     );
 }
