@@ -19,7 +19,7 @@ export interface CelestialBody {
     radius: number; // km
     color: number; // hex color
     orbitalElements?: OrbitalElements;
-    parentBodyIndex?: number; // Index of parent body in BODIES array (for moons)
+    satellites?: CelestialBody[]; // Array of satellites orbiting this body
 }
 
 /**
@@ -44,3 +44,14 @@ export interface SimulationConfig {
  * Integration method type
  */
 export type IntegrationMethod = "euler" | "verlet" | "rk4";
+
+/**
+ * Preset simulation scenario
+ */
+export interface PresetSimulation {
+    id: string;
+    name: string;
+    description: string;
+    elements: OrbitalElements;
+    riskLevel: "safe" | "low" | "moderate" | "high" | "critical";
+}

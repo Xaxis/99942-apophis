@@ -30,6 +30,13 @@ export function AsteroidBelt() {
         return texture;
     }, []);
 
+    // CRITICAL: Dispose texture on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            circleTexture.dispose();
+        };
+    }, [circleTexture]);
+
     const { positions, colors, sizes } = useMemo(() => {
         const numAsteroids = 3000; // Number of asteroid particles
         const positions = new Float32Array(numAsteroids * 3);

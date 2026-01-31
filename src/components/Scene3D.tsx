@@ -22,6 +22,7 @@ interface Scene3DProps {
     selectedBodyIndex: number | null;
     onBodyClick: (index: number) => void;
     apophisElements?: OrbitalElements; // Dynamic Apophis orbital elements
+    parentIndices: Map<CelestialBody, number>; // Map of satellites to their parent body indices
 }
 
 interface CameraFollowControllerProps {
@@ -44,6 +45,8 @@ interface BodyMeshProps {
     bodies: CelestialBody[];
     bodyStates: BodyState[];
     apophisElements?: OrbitalElements;
+    parentIndices: Map<CelestialBody, number>;
+    followBodyIndex: number | null; // Track which body camera is following
 }
 
 /**
@@ -134,34 +137,85 @@ function CameraFollowController({ followBodyIndex, bodyStates, bodies, controlsR
     return null;
 }
 
-function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelected, onClick, onDoubleClick, bodies, bodyStates, apophisElements }: BodyMeshProps) {
+function BodyMesh({
+    body,
+    state,
+    showLabel,
+    showTrail,
+    showOrbit,
+    index,
+    isSelected,
+    onClick,
+    onDoubleClick,
+    bodies,
+    bodyStates,
+    apophisElements,
+    parentIndices,
+    followBodyIndex,
+}: BodyMeshProps) {
     const meshRef = useRef<THREE.Mesh>(null);
     const trailRef = useRef<THREE.BufferGeometry>(null);
     const trailPositions = useRef<THREE.Vector3[]>([]);
-    const maxTrailLength = 500;
+    const maxTrailLength = 200; // Reduced from 500 to prevent memory issues with 50+ bodies
     const [hovered, setHovered] = useState(false);
     const lastClickTimeRef = useRef<number>(0);
     const singleClickTimerRef = useRef<NodeJS.Timeout | null>(null);
     const previousPositionRef = useRef<THREE.Vector3 | null>(null);
     const frameCountRef = useRef<number>(0);
+    const { camera } = useThree();
+    const [cameraDistance, setCameraDistance] = useState<number>(0);
+
     // Use apophisElements if provided, otherwise use body's orbital elements
     const currentElements = useMemo(() => apophisElements || body.orbitalElements, [apophisElements, body.orbitalElements]);
     const previousOrbitalElementsRef = useRef<OrbitalElements | undefined>(currentElements);
 
+    // CRITICAL: Dispose trail geometry on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            if (trailRef.current) {
+                trailRef.current.dispose();
+            }
+        };
+    }, []);
+
     // Convert position from meters to AU for visualization - memoized to prevent unnecessary re-renders
-    const positionAU = useMemo(
-        () => [
+    // For satellites: scale up the visual position relative to parent for better visibility
+    const positionAU = useMemo(() => {
+        const basePos = [
             state.position[0] / AU,
             state.position[2] / AU, // Swap Y and Z for better visualization
             -state.position[1] / AU,
-        ],
-        [state.position]
-    );
+        ];
 
-    // Update mesh position
+        // If this is a satellite, scale up its visual distance from parent
+        const parentIndex = parentIndices.get(body);
+        if (parentIndex !== undefined) {
+            const parentState = bodyStates[parentIndex];
+            if (parentState) {
+                const parentPos = [parentState.position[0] / AU, parentState.position[2] / AU, -parentState.position[1] / AU];
+
+                // Calculate relative position (satellite position is already absolute/heliocentric)
+                const relativePos = [basePos[0] - parentPos[0], basePos[1] - parentPos[1], basePos[2] - parentPos[2]];
+
+                // Scale factor: make satellite orbits ~20x larger for visibility
+                const visualScale = 20.0;
+
+                return [parentPos[0] + relativePos[0] * visualScale, parentPos[1] + relativePos[1] * visualScale, parentPos[2] + relativePos[2] * visualScale];
+            }
+        }
+
+        return basePos;
+    }, [state.position, body, parentIndices, bodyStates]);
+
+    // Update mesh position and camera distance
     useFrame((frameState) => {
         if (meshRef.current) {
             meshRef.current.position.set(positionAU[0], positionAU[1], positionAU[2]);
+
+            // Calculate distance from camera to this body
+            const bodyPos = new THREE.Vector3(positionAU[0], positionAU[1], positionAU[2]);
+            const dist = camera.position.distanceTo(bodyPos);
+            setCameraDistance(dist);
 
             // Update trail
             if (index > 0 && showTrail) {
@@ -201,44 +255,78 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                     }
                 }
 
-                // Update trail geometry every 3 frames to reduce performance impact
+                // Update trail geometry every 10 frames to reduce performance impact
                 frameCountRef.current++;
-                if (trailRef.current && trailPositions.current.length > 1 && frameCountRef.current % 3 === 0) {
-                    // Dispose old geometry and create new one to avoid buffer size errors
-                    trailRef.current.dispose();
-                    const newGeometry = new THREE.BufferGeometry().setFromPoints(trailPositions.current);
-                    trailRef.current.copy(newGeometry);
-                    newGeometry.dispose();
+                if (trailRef.current && trailPositions.current.length > 1 && frameCountRef.current % 10 === 0) {
+                    // Check if buffer needs to be resized
+                    const currentBufferSize = trailRef.current.attributes.position?.count || 0;
+                    const requiredSize = trailPositions.current.length;
+
+                    if (requiredSize > currentBufferSize) {
+                        // Buffer too small - need to recreate geometry
+                        trailRef.current.dispose();
+                        trailRef.current.copy(new THREE.BufferGeometry().setFromPoints(trailPositions.current));
+                    } else {
+                        // Buffer large enough - update in place
+                        const positions = trailRef.current.attributes.position.array as Float32Array;
+                        for (let i = 0; i < requiredSize; i++) {
+                            positions[i * 3] = trailPositions.current[i].x;
+                            positions[i * 3 + 1] = trailPositions.current[i].y;
+                            positions[i * 3 + 2] = trailPositions.current[i].z;
+                        }
+                        trailRef.current.setDrawRange(0, requiredSize);
+                        trailRef.current.attributes.position.needsUpdate = true;
+                    }
                 }
             }
         }
     });
 
-    // Calculate body size for visualization with proper scaling
-    // NOTE: Body sizes are exaggerated for visibility - not to scale with orbital distances
-    let visualRadius = 0.01; // Default size in AU
-    if (index === 0) {
-        // Sun - large and visible
-        visualRadius = 0.05;
-    } else if (body.name === "Moon") {
-        // Moon - visible but smaller than planets
-        visualRadius = 0.008;
-    } else if (body.name === "99942 Apophis") {
-        // Apophis - tiny asteroid, but make it visible
-        visualRadius = 0.015;
-    } else if (body.name.includes("Ceres") || body.name.includes("Vesta") || body.name.includes("Pallas") || body.name.includes("Hygiea")) {
-        // Major asteroids - smaller than planets
-        visualRadius = 0.012;
-    } else if (body.name.includes("Pluto")) {
-        // Pluto - dwarf planet, smaller than major planets
-        visualRadius = 0.015;
-    } else {
-        // Planets - standard size
-        visualRadius = 0.02;
-    }
+    // Calculate body size using DISTANCE-BASED ADAPTIVE SCALING
+    // This is how professional orrery software (Celestia, Space Engine, Stellarium) works:
+    // Objects get larger as you zoom in, maintaining visibility at all zoom levels
+    const visualRadius = useMemo(() => {
+        const KM_PER_AU = 149597870.7; // 1 AU in kilometers
+
+        // Convert physical radius (km) to AU
+        const physicalRadiusAU = body.radius / KM_PER_AU;
+
+        // Check if this is a satellite
+        const isSatellite = parentIndices.get(body) !== undefined;
+
+        // PROFESSIONAL ORRERY DISTANCE-BASED ADAPTIVE SCALING
+        // Based on Celestia, Space Engine, Stellarium
+        //
+        // Key insight: Use LOGARITHMIC scaling that works across ALL distance ranges
+        // - Zoomed out (100 AU): Modest scaling for solar system view
+        // - Medium (1 AU): Moderate scaling for planet viewing
+        // - Close (0.01 AU): Aggressive scaling for detail viewing
+        // - Very close (0.001 AU): Extreme scaling for moon/surface viewing
+
+        const baseScale = isSatellite ? 20.0 : 10.0;
+
+        // LOGARITHMIC DISTANCE SCALING
+        // This creates smooth scaling across all zoom levels
+        // Formula: scale = baseScale * (referenceDistance / actualDistance)^power
+        //
+        // Using power of 0.5 (square root) for smooth but aggressive scaling
+        const REFERENCE_DISTANCE = 10.0; // AU - reference point for scaling
+        const POWER = 0.5; // Square root for smooth scaling
+        const MAX_SCALE_BOOST = 1000.0; // Cap at 1000x to prevent extreme values
+
+        const distanceRatio = REFERENCE_DISTANCE / Math.max(0.001, cameraDistance);
+        const distanceScale = Math.min(MAX_SCALE_BOOST, Math.pow(distanceRatio, POWER));
+
+        const scaledRadius = physicalRadiusAU * baseScale * distanceScale;
+
+        // Minimum visibility for very tiny objects
+        const MIN_RADIUS = 0.0001; // AU
+        return Math.max(scaledRadius, MIN_RADIUS);
+    }, [body, parentIndices, cameraDistance]);
 
     return (
         <>
+            {/* Main body sphere */}
             <mesh
                 ref={meshRef}
                 onClick={(e) => {
@@ -275,27 +363,77 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                 }}
             >
                 <sphereGeometry args={[visualRadius, 32, 32]} />
-                {index === 0 ? (
-                    <meshBasicMaterial color={body.color} />
-                ) : (
-                    <meshStandardMaterial color={body.color} emissive={body.color} emissiveIntensity={isSelected ? 0.8 : hovered ? 0.5 : 0.2} />
-                )}
+                {index === 0 ? <meshBasicMaterial color={body.color} /> : <meshStandardMaterial color={body.color} emissive={body.color} emissiveIntensity={hovered ? 0.5 : 0.2} />}
             </mesh>
 
             {showLabel &&
                 (() => {
-                    // Smart label positioning - offset labels for bodies in close proximity
-                    let labelOffset = visualRadius * 2;
-                    let labelXOffset = 0;
+                    // INTELLIGENT LABEL VISIBILITY SYSTEM
+                    // Based on professional planetarium software (Stellarium, Celestia, Space Engine)
 
-                    // Special handling for Moon - offset to the right to avoid Earth label overlap
-                    if (body.name === "Moon") {
-                        labelOffset = visualRadius * 3;
-                        labelXOffset = 0.015; // Offset to the right
+                    const isSatellite = parentIndices.get(body) !== undefined;
+                    const parentIndex = parentIndices.get(body);
+
+                    // Determine if label should be visible based on context
+                    let shouldShowLabel = false;
+
+                    if (!isSatellite) {
+                        // PLANETS/SUN/ASTEROIDS: Always show when zoomed out
+                        // Hide when camera is very close (< 0.1 AU) to avoid label covering view
+                        shouldShowLabel = cameraDistance > 0.05;
+                    } else {
+                        // SATELLITES (MOONS): Only show when:
+                        // 1. Camera is following the parent planet, OR
+                        // 2. Camera is very close to the satellite (< 0.05 AU), OR
+                        // 3. Satellite is selected/hovered
+                        const isFollowingParent = followBodyIndex === parentIndex;
+                        const isCloseToSatellite = cameraDistance < 0.05;
+                        const isInteractingWithSatellite = isSelected || hovered;
+
+                        shouldShowLabel = isFollowingParent || isCloseToSatellite || isInteractingWithSatellite;
+                    }
+
+                    if (!shouldShowLabel) return null;
+
+                    // PROFESSIONAL LABEL POSITIONING ALGORITHM
+                    // Based on research: "Labels on Levels" (IEEE TVCG 2018) and professional orrery software
+                    //
+                    // Strategy: RADIAL OFFSET from object center to avoid parent-child occlusion
+                    // - For satellites: offset AWAY from parent to avoid covering parent planet
+                    // - For planets: offset upward (standard vertical placement)
+                    // - Use clearance multiplier to ensure label is outside visual boundary
+
+                    const LABEL_CLEARANCE_MULTIPLIER = 1.8; // 1.8x radius = 80% clearance beyond sphere edge
+
+                    let labelXOffset = 0;
+                    let labelYOffset = visualRadius * LABEL_CLEARANCE_MULTIPLIER;
+                    let labelZOffset = 0;
+
+                    // HIERARCHICAL LABEL POSITIONING: Satellites offset radially away from parent
+                    if (isSatellite && parentIndex !== undefined) {
+                        const parentState = bodyStates[parentIndex];
+                        if (parentState) {
+                            // Calculate direction from parent to satellite (in AU)
+                            const parentPosAU = [parentState.position[0] / AU, parentState.position[2] / AU, -parentState.position[1] / AU];
+
+                            const dirX = positionAU[0] - parentPosAU[0];
+                            const dirY = positionAU[1] - parentPosAU[1];
+                            const dirZ = positionAU[2] - parentPosAU[2];
+
+                            const length = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+
+                            if (length > 0.0001) {
+                                // Normalize direction and offset label AWAY from parent
+                                const offsetDistance = visualRadius * LABEL_CLEARANCE_MULTIPLIER;
+                                labelXOffset = (dirX / length) * offsetDistance;
+                                labelYOffset = (dirY / length) * offsetDistance;
+                                labelZOffset = (dirZ / length) * offsetDistance;
+                            }
+                        }
                     }
 
                     return (
-                        <Html position={[positionAU[0] + labelXOffset, positionAU[1] + labelOffset, positionAU[2]]} zIndexRange={[0, 0]}>
+                        <Html position={[positionAU[0] + labelXOffset, positionAU[1] + labelYOffset, positionAU[2] + labelZOffset]} center zIndexRange={[0, 0]}>
                             <div
                                 className="bg-black/70 text-white px-2 py-1 rounded text-xs whitespace-nowrap cursor-pointer"
                                 onClick={(e) => {
@@ -328,33 +466,69 @@ function BodyMesh({ body, state, showLabel, showTrail, showOrbit, index, isSelec
                     );
                 })()}
 
-            {index > 0 && showTrail && trailPositions.current.length > 1 && (
-                <line>
-                    <bufferGeometry ref={trailRef} />
-                    <lineBasicMaterial color={body.color} transparent opacity={0.6} linewidth={2} />
-                </line>
-            )}
+            {index > 0 &&
+                showTrail &&
+                trailPositions.current.length > 1 &&
+                (() => {
+                    // For satellites, only show trail when following parent or very close
+                    const isSatellite = parentIndices.get(body) !== undefined;
+                    const parentIndex = parentIndices.get(body);
 
-            {index > 0 && showOrbit && currentElements && body.parentBodyIndex !== undefined && (
-                <OrbitPath
-                    elements={currentElements}
-                    color={body.color}
-                    parentBody={bodies[body.parentBodyIndex]}
-                    parentState={bodyStates[body.parentBodyIndex]}
-                    isSelected={isSelected}
-                    onClick={onClick}
-                    onDoubleClick={onDoubleClick}
-                />
-            )}
+                    if (isSatellite) {
+                        const isFollowingParent = followBodyIndex === parentIndex;
+                        const isCloseToSatellite = cameraDistance < 0.1;
 
-            {index > 0 && showOrbit && currentElements && body.parentBodyIndex === undefined && (
-                <OrbitPath elements={currentElements} color={body.color} isSelected={isSelected} onClick={onClick} onDoubleClick={onDoubleClick} />
-            )}
+                        if (!isFollowingParent && !isCloseToSatellite) {
+                            return null; // Don't show satellite trails when zoomed out
+                        }
+                    }
+
+                    return (
+                        <line>
+                            <bufferGeometry ref={trailRef} />
+                            <lineBasicMaterial color={body.color} transparent opacity={0.6} linewidth={2} />
+                        </line>
+                    );
+                })()}
+
+            {index > 0 &&
+                showOrbit &&
+                currentElements &&
+                (() => {
+                    const parentIndex = parentIndices.get(body);
+                    const isSatellite = parentIndex !== undefined;
+
+                    // For satellites, only show orbit when following parent or very close
+                    if (isSatellite) {
+                        const isFollowingParent = followBodyIndex === parentIndex;
+                        const isCloseToSatellite = cameraDistance < 0.1;
+
+                        if (!isFollowingParent && !isCloseToSatellite) {
+                            return null; // Don't show satellite orbits when zoomed out
+                        }
+                    }
+
+                    if (parentIndex !== undefined) {
+                        return (
+                            <OrbitPath
+                                elements={currentElements}
+                                color={body.color}
+                                parentBody={bodies[parentIndex]}
+                                parentState={bodyStates[parentIndex]}
+                                isSelected={isSelected}
+                                onClick={onClick}
+                                onDoubleClick={onDoubleClick}
+                            />
+                        );
+                    } else {
+                        return <OrbitPath elements={currentElements} color={body.color} isSelected={isSelected} onClick={onClick} onDoubleClick={onDoubleClick} />;
+                    }
+                })()}
         </>
     );
 }
 
-export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits, selectedBodyIndex, onBodyClick, apophisElements }: Scene3DProps) {
+export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits, selectedBodyIndex, onBodyClick, apophisElements, parentIndices }: Scene3DProps) {
     const [followBodyIndex, setFollowBodyIndex] = useState<number | null>(null);
     const controlsRef = useRef<any>(null);
 
@@ -365,7 +539,14 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
     };
 
     return (
-        <Canvas camera={{ position: [3, 2, 3], fov: 60 }}>
+        <Canvas
+            camera={{
+                position: [3, 2, 3],
+                fov: 60,
+                near: 0.00001, // Very small near plane - allows zooming extremely close to tiny objects
+                far: 1000, // Large far plane - can see entire solar system
+            }}
+        >
             <color attach="background" args={["#000000"]} />
             <ambientLight intensity={0.3} />
             <pointLight position={[0, 0, 0]} intensity={2} />
@@ -391,6 +572,8 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
                     bodies={bodies}
                     bodyStates={bodyStates}
                     apophisElements={body.name === "99942 Apophis" ? apophisElements : undefined}
+                    parentIndices={parentIndices}
+                    followBodyIndex={followBodyIndex}
                 />
             ))}
 
@@ -398,7 +581,7 @@ export function Scene3D({ bodies, bodyStates, showLabels, showTrails, showOrbits
                 ref={controlsRef}
                 enableDamping
                 dampingFactor={0.05}
-                minDistance={0.5}
+                minDistance={0.001}
                 maxDistance={100}
                 makeDefault
                 // Note: The wheel event passive warning is a known issue with OrbitControls

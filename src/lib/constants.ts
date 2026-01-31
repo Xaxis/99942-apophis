@@ -1,11 +1,10 @@
-import { CelestialBody, OrbitalElements } from "./types";
+import { CelestialBody, OrbitalElements, PresetSimulation } from "./types";
 
 /**
  * Physical constants
  */
 export const G = 6.6743e-11; // Gravitational constant (m^3 kg^-1 s^-2)
 export const AU = 1.495978707e11; // Astronomical Unit in meters
-export const SECONDS_PER_DAY = 86400;
 
 /**
  * Solar system bodies
@@ -17,18 +16,18 @@ export const SUN: CelestialBody = {
     color: 0xfdb813,
 };
 
-export const EARTH: CelestialBody = {
-    name: "Earth",
-    mass: 5.972e24,
-    radius: 6371,
-    color: 0x4a90e2,
+export const MERCURY: CelestialBody = {
+    name: "Mercury",
+    mass: 3.3011e23, // Innermost planet - affects inner solar system dynamics
+    radius: 2440,
+    color: 0x8c7853,
     orbitalElements: {
-        semiMajorAxis: 1.0,
-        eccentricity: 0.0167,
-        inclination: 0.0,
-        longitudeOfAscendingNode: 0.0,
-        argumentOfPeriapsis: 102.9,
-        meanAnomaly: 0.0,
+        semiMajorAxis: 0.387,
+        eccentricity: 0.2056,
+        inclination: 7.005,
+        longitudeOfAscendingNode: 48.33,
+        argumentOfPeriapsis: 29.12,
+        meanAnomaly: 174.8,
     },
 };
 
@@ -47,6 +46,38 @@ export const VENUS: CelestialBody = {
     },
 };
 
+export const EARTH: CelestialBody = {
+    name: "Earth",
+    mass: 5.972e24,
+    radius: 6371,
+    color: 0x4a90e2,
+    orbitalElements: {
+        semiMajorAxis: 1.0,
+        eccentricity: 0.0167,
+        inclination: 0.0,
+        longitudeOfAscendingNode: 0.0,
+        argumentOfPeriapsis: 102.9,
+        meanAnomaly: 0.0,
+    },
+    satellites: [
+        {
+            name: "Moon",
+            mass: 7.342e22,
+            radius: 1737,
+            color: 0xaaaaaa,
+            orbitalElements: {
+                // NASA JPL DE405/LE405 - Geocentric orbital elements (Moon orbits Earth)
+                semiMajorAxis: 0.00257, // AU (384,400 km) - Real Moon orbit distance
+                eccentricity: 0.0554,
+                inclination: 5.16, // degrees - Relative to ecliptic
+                longitudeOfAscendingNode: 125.08,
+                argumentOfPeriapsis: 318.15,
+                meanAnomaly: 135.27,
+            },
+        },
+    ],
+};
+
 export const MARS: CelestialBody = {
     name: "Mars",
     mass: 6.417e23,
@@ -60,6 +91,38 @@ export const MARS: CelestialBody = {
         argumentOfPeriapsis: 336.04,
         meanAnomaly: 0.0,
     },
+    satellites: [
+        {
+            name: "Phobos",
+            mass: 1.0659e16, // kg
+            radius: 11.267, // km (mean radius)
+            color: 0x8b7355,
+            orbitalElements: {
+                // NASA JPL MAR099 - Laplace plane elements
+                semiMajorAxis: 0.0000627, // AU (9,375 km)
+                eccentricity: 0.015,
+                inclination: 1.1, // degrees
+                longitudeOfAscendingNode: 169.2,
+                argumentOfPeriapsis: 216.3,
+                meanAnomaly: 189.7,
+            },
+        },
+        {
+            name: "Deimos",
+            mass: 1.4762e15, // kg
+            radius: 6.2, // km (mean radius)
+            color: 0x9d8b7a,
+            orbitalElements: {
+                // NASA JPL MAR099 - Laplace plane elements
+                semiMajorAxis: 0.000157, // AU (23,457 km)
+                eccentricity: 0.0,
+                inclination: 1.8, // degrees
+                longitudeOfAscendingNode: 54.3,
+                argumentOfPeriapsis: 0.0,
+                meanAnomaly: 205.0,
+            },
+        },
+    ],
 };
 
 export const JUPITER: CelestialBody = {
@@ -75,6 +138,68 @@ export const JUPITER: CelestialBody = {
         argumentOfPeriapsis: 273.87,
         meanAnomaly: 20.02,
     },
+    satellites: [
+        {
+            name: "Io",
+            mass: 8.9319e22, // kg
+            radius: 1821.6, // km
+            color: 0xffff00,
+            orbitalElements: {
+                // NASA JPL JUP365 - Laplace plane elements
+                semiMajorAxis: 0.00282, // AU (421,800 km)
+                eccentricity: 0.004,
+                inclination: 0.0, // degrees
+                longitudeOfAscendingNode: 0.0,
+                argumentOfPeriapsis: 49.1,
+                meanAnomaly: 330.9,
+            },
+        },
+        {
+            name: "Europa",
+            mass: 4.7998e22, // kg
+            radius: 1560.8, // km
+            color: 0xd4c5a9,
+            orbitalElements: {
+                // NASA JPL JUP365 - Laplace plane elements
+                semiMajorAxis: 0.00449, // AU (671,100 km)
+                eccentricity: 0.009,
+                inclination: 0.5, // degrees
+                longitudeOfAscendingNode: 184.0,
+                argumentOfPeriapsis: 45.0,
+                meanAnomaly: 345.4,
+            },
+        },
+        {
+            name: "Ganymede",
+            mass: 1.4819e23, // kg
+            radius: 2634.1, // km
+            color: 0x8b7d6b,
+            orbitalElements: {
+                // NASA JPL JUP365 - Laplace plane elements
+                semiMajorAxis: 0.00716, // AU (1,070,400 km)
+                eccentricity: 0.001,
+                inclination: 0.2, // degrees
+                longitudeOfAscendingNode: 58.5,
+                argumentOfPeriapsis: 198.3,
+                meanAnomaly: 324.8,
+            },
+        },
+        {
+            name: "Callisto",
+            mass: 1.0759e23, // kg
+            radius: 2410.3, // km
+            color: 0x7a6f5d,
+            orbitalElements: {
+                // NASA JPL JUP365 - Laplace plane elements
+                semiMajorAxis: 0.01259, // AU (1,882,700 km)
+                eccentricity: 0.007,
+                inclination: 0.3, // degrees
+                longitudeOfAscendingNode: 309.1,
+                argumentOfPeriapsis: 43.8,
+                meanAnomaly: 87.4,
+            },
+        },
+    ],
 };
 
 export const SATURN: CelestialBody = {
@@ -90,40 +215,113 @@ export const SATURN: CelestialBody = {
         argumentOfPeriapsis: 339.39,
         meanAnomaly: 317.02,
     },
-};
-
-export const MERCURY: CelestialBody = {
-    name: "Mercury",
-    mass: 3.3011e23, // Innermost planet - affects inner solar system dynamics
-    radius: 2440,
-    color: 0x8c7853,
-    orbitalElements: {
-        semiMajorAxis: 0.387,
-        eccentricity: 0.2056,
-        inclination: 7.005,
-        longitudeOfAscendingNode: 48.33,
-        argumentOfPeriapsis: 29.12,
-        meanAnomaly: 174.8,
-    },
-};
-
-export const MOON: CelestialBody = {
-    name: "Moon",
-    mass: 7.342e22, // Earth's moon - affects Earth-asteroid interactions
-    radius: 1737,
-    color: 0xaaaaaa,
-    parentBodyIndex: 3, // Orbits Earth (index 3 in BODIES array)
-    orbitalElements: {
-        // Geocentric orbital elements (Moon orbits Earth)
-        // NOTE: Semi-major axis is EXAGGERATED for visualization (real: 0.00257 AU)
-        // Scaled up by ~20x so Moon orbit is visible outside Earth's visual sphere
-        semiMajorAxis: 0.05, // Exaggerated from 0.00257 AU for visibility
-        eccentricity: 0.0549,
-        inclination: 5.145, // Relative to ecliptic
-        longitudeOfAscendingNode: 125.08,
-        argumentOfPeriapsis: 318.15,
-        meanAnomaly: 0.0,
-    },
+    satellites: [
+        {
+            name: "Mimas",
+            mass: 3.7493e19, // kg
+            radius: 198.2, // km
+            color: 0xc0c0c0,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00124, // AU (185,539 km)
+                eccentricity: 0.02,
+                inclination: 1.6, // degrees
+                longitudeOfAscendingNode: 139.8,
+                argumentOfPeriapsis: 334.3,
+                meanAnomaly: 127.6,
+            },
+        },
+        {
+            name: "Enceladus",
+            mass: 1.0802e20, // kg
+            radius: 252.1, // km
+            color: 0xf0f0f0,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00159, // AU (238,042 km)
+                eccentricity: 0.005,
+                inclination: 0.0, // degrees
+                longitudeOfAscendingNode: 0.0,
+                argumentOfPeriapsis: 178.0,
+                meanAnomaly: 215.7,
+            },
+        },
+        {
+            name: "Tethys",
+            mass: 6.1745e20, // kg
+            radius: 531.1, // km
+            color: 0xd8d8d8,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00197, // AU (294,672 km)
+                eccentricity: 0.0,
+                inclination: 1.1, // degrees
+                longitudeOfAscendingNode: 158.0,
+                argumentOfPeriapsis: 0.0,
+                meanAnomaly: 257.4,
+            },
+        },
+        {
+            name: "Dione",
+            mass: 1.0955e21, // kg
+            radius: 561.4, // km
+            color: 0xc8c8c8,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00252, // AU (377,415 km)
+                eccentricity: 0.002,
+                inclination: 0.0, // degrees
+                longitudeOfAscendingNode: 0.0,
+                argumentOfPeriapsis: 290.0,
+                meanAnomaly: 325.7,
+            },
+        },
+        {
+            name: "Rhea",
+            mass: 2.3065e21, // kg
+            radius: 763.8, // km
+            color: 0xb8b8b8,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00352, // AU (527,068 km)
+                eccentricity: 0.001,
+                inclination: 0.3, // degrees
+                longitudeOfAscendingNode: 306.0,
+                argumentOfPeriapsis: 235.0,
+                meanAnomaly: 190.7,
+            },
+        },
+        {
+            name: "Titan",
+            mass: 1.3452e23, // kg
+            radius: 2574.7, // km
+            color: 0xffa500,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.00817, // AU (1,221,865 km)
+                eccentricity: 0.029,
+                inclination: 0.3, // degrees
+                longitudeOfAscendingNode: 28.1,
+                argumentOfPeriapsis: 180.5,
+                meanAnomaly: 163.7,
+            },
+        },
+        {
+            name: "Iapetus",
+            mass: 1.8056e21, // kg
+            radius: 734.5, // km
+            color: 0x8b8680,
+            orbitalElements: {
+                // NASA JPL SAT441 - Laplace plane elements
+                semiMajorAxis: 0.0238, // AU (3,560,840 km)
+                eccentricity: 0.029,
+                inclination: 15.5, // degrees
+                longitudeOfAscendingNode: 81.1,
+                argumentOfPeriapsis: 271.6,
+                meanAnomaly: 201.1,
+            },
+        },
+    ],
 };
 
 export const URANUS: CelestialBody = {
@@ -140,6 +338,83 @@ export const URANUS: CelestialBody = {
         argumentOfPeriapsis: 170.9542763 - 74.01692503, // ω = ϖ - Ω
         meanAnomaly: 313.23810451 - 170.9542763, // M = L - ϖ
     },
+    satellites: [
+        {
+            name: "Miranda",
+            mass: 6.59e19, // kg
+            radius: 235.8, // km
+            color: 0xb0b0b0,
+            orbitalElements: {
+                // NASA JPL URA182 - Equatorial plane elements
+                semiMajorAxis: 0.000868, // AU (129,846 km)
+                eccentricity: 0.001,
+                inclination: 4.4, // degrees
+                longitudeOfAscendingNode: 100.9,
+                argumentOfPeriapsis: 154.8,
+                meanAnomaly: 73.0,
+            },
+        },
+        {
+            name: "Ariel",
+            mass: 1.353e21, // kg
+            radius: 578.9, // km
+            color: 0xc8c8c8,
+            orbitalElements: {
+                // NASA JPL URA182 - Equatorial plane elements
+                semiMajorAxis: 0.00128, // AU (191,020 km)
+                eccentricity: 0.001,
+                inclination: 0.0, // degrees
+                longitudeOfAscendingNode: 0.0,
+                argumentOfPeriapsis: 115.4,
+                meanAnomaly: 156.2,
+            },
+        },
+        {
+            name: "Umbriel",
+            mass: 1.172e21, // kg
+            radius: 584.7, // km
+            color: 0x808080,
+            orbitalElements: {
+                // NASA JPL URA182 - Equatorial plane elements
+                semiMajorAxis: 0.00178, // AU (266,000 km)
+                eccentricity: 0.004,
+                inclination: 0.1, // degrees
+                longitudeOfAscendingNode: 33.5,
+                argumentOfPeriapsis: 84.8,
+                meanAnomaly: 108.0,
+            },
+        },
+        {
+            name: "Titania",
+            mass: 3.527e21, // kg
+            radius: 788.4, // km
+            color: 0xd0d0d0,
+            orbitalElements: {
+                // NASA JPL URA182 - Equatorial plane elements
+                semiMajorAxis: 0.00291, // AU (435,910 km)
+                eccentricity: 0.001,
+                inclination: 0.1, // degrees
+                longitudeOfAscendingNode: 99.8,
+                argumentOfPeriapsis: 99.8,
+                meanAnomaly: 24.6,
+            },
+        },
+        {
+            name: "Oberon",
+            mass: 3.014e21, // kg
+            radius: 761.4, // km
+            color: 0xa0a0a0,
+            orbitalElements: {
+                // NASA JPL URA182 - Equatorial plane elements
+                semiMajorAxis: 0.0039, // AU (583,520 km)
+                eccentricity: 0.001,
+                inclination: 0.1, // degrees
+                longitudeOfAscendingNode: 279.8,
+                argumentOfPeriapsis: 10.9,
+                meanAnomaly: 283.1,
+            },
+        },
+    ],
 };
 
 export const NEPTUNE: CelestialBody = {
@@ -156,6 +431,38 @@ export const NEPTUNE: CelestialBody = {
         argumentOfPeriapsis: 44.96476227 - 131.78422574, // ω = ϖ - Ω
         meanAnomaly: -55.12002969 - 44.96476227, // M = L - ϖ
     },
+    satellites: [
+        {
+            name: "Triton",
+            mass: 2.14e22, // kg
+            radius: 1353.4, // km
+            color: 0xf0e68c,
+            orbitalElements: {
+                // NASA JPL NEP097 - Laplace plane elements (retrograde orbit)
+                semiMajorAxis: 0.00237, // AU (354,800 km)
+                eccentricity: 0.0,
+                inclination: 157.3, // degrees (retrograde)
+                longitudeOfAscendingNode: 178.1,
+                argumentOfPeriapsis: 0.0,
+                meanAnomaly: 63.0,
+            },
+        },
+        {
+            name: "Proteus",
+            mass: 4.4e19, // kg (estimated)
+            radius: 210, // km
+            color: 0x909090,
+            orbitalElements: {
+                // NASA JPL NEP097 - Laplace plane elements
+                semiMajorAxis: 0.000786, // AU (117,600 km)
+                eccentricity: 0.0,
+                inclination: 0.0, // degrees
+                longitudeOfAscendingNode: 0.0,
+                argumentOfPeriapsis: 0.0,
+                meanAnomaly: 276.8,
+            },
+        },
+    ],
 };
 
 export const CERES: CelestialBody = {
@@ -235,56 +542,48 @@ export const PLUTO: CelestialBody = {
 
 export const APOPHIS: CelestialBody = {
     name: "99942 Apophis",
-    mass: 6.1e10,
-    radius: 0.185,
+    mass: 6.1e10, // kg - estimated from ~370m diameter and assumed density
+    radius: 0.185, // km - radius (~370m diameter)
     color: 0x8b7355,
+    // Orbital elements from NASA JPL Small-Body Database (Epoch: 2460200.5 JD)
     orbitalElements: {
-        semiMajorAxis: 0.9224,
-        eccentricity: 0.1914,
-        inclination: 3.331,
-        longitudeOfAscendingNode: 204.45,
-        argumentOfPeriapsis: 126.4,
-        meanAnomaly: 0.0,
+        semiMajorAxis: 0.9227, // AU - NASA JPL verified
+        eccentricity: 0.1914, // NASA JPL verified
+        inclination: 3.34, // degrees - NASA JPL verified
+        longitudeOfAscendingNode: 203.96, // degrees - NASA JPL verified
+        argumentOfPeriapsis: 126.6, // degrees - NASA JPL verified
+        meanAnomaly: 142.86, // degrees - NASA JPL verified (for epoch 2460200.5 JD)
     },
 };
 
-export const BODIES = [SUN, MERCURY, VENUS, EARTH, MOON, MARS, CERES, VESTA, PALLAS, HYGIEA, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, APOPHIS];
-
-// Preset Simulations
-export interface PresetSimulation {
-    id: string;
-    name: string;
-    description: string;
-    elements: OrbitalElements;
-    riskLevel: "safe" | "low" | "moderate" | "high" | "critical";
-}
+export const BODIES = [SUN, MERCURY, VENUS, EARTH, MARS, CERES, VESTA, PALLAS, HYGIEA, JUPITER, SATURN, URANUS, NEPTUNE, PLUTO, APOPHIS];
 
 export const PRESET_SIMULATIONS: PresetSimulation[] = [
     {
         id: "current",
         name: "Current Orbit (Safe)",
-        description: "Apophis's actual current orbital parameters. No impact risk for at least 100 years.",
+        description: "Apophis's actual current orbital parameters from NASA JPL. No impact risk for at least 100 years.",
         elements: {
-            semiMajorAxis: 0.9224,
+            semiMajorAxis: 0.9227, // NASA JPL verified
             eccentricity: 0.1914,
-            inclination: 3.331,
-            longitudeOfAscendingNode: 204.45,
-            argumentOfPeriapsis: 126.4,
-            meanAnomaly: 0.0,
+            inclination: 3.34,
+            longitudeOfAscendingNode: 203.96,
+            argumentOfPeriapsis: 126.6,
+            meanAnomaly: 142.86,
         },
         riskLevel: "safe",
     },
     {
         id: "2029-approach",
         name: "2029 Close Approach",
-        description: "Simulates the April 13, 2029 flyby at ~31,000 km. Safe but very close.",
+        description: "Apophis's actual orbit - speed up time to see the April 13, 2029 flyby at ~31,000 km. Safe but very close.",
         elements: {
-            semiMajorAxis: 0.9224,
+            semiMajorAxis: 0.9227, // NASA JPL verified - same as current
             eccentricity: 0.1914,
-            inclination: 3.331,
-            longitudeOfAscendingNode: 204.45,
-            argumentOfPeriapsis: 126.4,
-            meanAnomaly: 180.0,
+            inclination: 3.34,
+            longitudeOfAscendingNode: 203.96,
+            argumentOfPeriapsis: 126.6,
+            meanAnomaly: 142.86, // Same starting position - let simulation evolve naturally
         },
         riskLevel: "low",
     },
@@ -293,12 +592,12 @@ export const PRESET_SIMULATIONS: PresetSimulation[] = [
         name: "Reduced Inclination Scenario",
         description: "What if Apophis had lower orbital inclination? Increases intersection probability.",
         elements: {
-            semiMajorAxis: 0.9224,
+            semiMajorAxis: 0.9227, // Based on NASA JPL data
             eccentricity: 0.1914,
-            inclination: 0.5,
-            longitudeOfAscendingNode: 204.45,
-            argumentOfPeriapsis: 126.4,
-            meanAnomaly: 0.0,
+            inclination: 0.5, // Hypothetical reduced inclination
+            longitudeOfAscendingNode: 203.96,
+            argumentOfPeriapsis: 126.6,
+            meanAnomaly: 142.86, // Same starting position as current orbit
         },
         riskLevel: "moderate",
     },

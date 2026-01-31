@@ -20,6 +20,7 @@ export class NBodySimulator {
 
     /**
      * Calculate gravitational acceleration on body i
+     * Uses standard N-body calculation - all positions are in heliocentric coordinates
      */
     private calculateAcceleration(i: number, positions: [number, number, number][]): [number, number, number] {
         const acc: [number, number, number] = [0, 0, 0];

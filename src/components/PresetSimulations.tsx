@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Rocket } from "lucide-react";
-import { PRESET_SIMULATIONS, PresetSimulation } from "@/lib/constants";
-import { OrbitalElements } from "@/lib/types";
+import { PRESET_SIMULATIONS } from "@/lib/constants";
+import { OrbitalElements, PresetSimulation } from "@/lib/types";
 import { MinimizablePanel } from "./ui/MinimizablePanel";
 
 interface PresetSimulationsProps {

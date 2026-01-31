@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useEffect } from "react";
 import * as THREE from "three";
 import { OrbitalElements, BodyState, CelestialBody } from "@/lib/types";
 import { calculateOrbitalState } from "@/lib/physics/orbital-mechanics";
@@ -24,6 +24,10 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
         const pts: THREE.Vector3[] = [];
         const numPoints = 200;
 
+        // Check if this is a satellite orbit (needs visual scaling for visibility)
+        const isSatelliteOrbit = parentBody !== undefined;
+        const visualScale = isSatelliteOrbit ? 20.0 : 1.0; // Scale satellite orbits 20x for visibility
+
         for (let i = 0; i <= numPoints; i++) {
             const meanAnomaly = (i / numPoints) * 360;
 
@@ -32,9 +36,20 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
             const state = calculateOrbitalState({ ...elements, meanAnomaly }, centralMass, 0, parentState);
 
             // Convert from meters to AU and apply Y/Z swap for visualization
-            const x = state.position[0] / AU;
-            const y = state.position[2] / AU; // Swap Y and Z
-            const z = -state.position[1] / AU; // Negate Y
+            let x = state.position[0] / AU;
+            let y = state.position[2] / AU; // Swap Y and Z
+            let z = -state.position[1] / AU; // Negate Y
+
+            // If satellite orbit, scale the distance from parent for visibility
+            if (isSatelliteOrbit && parentState) {
+                const parentX = parentState.position[0] / AU;
+                const parentY = parentState.position[2] / AU;
+                const parentZ = -parentState.position[1] / AU;
+
+                x = parentX + (x - parentX) * visualScale;
+                y = parentY + (y - parentY) * visualScale;
+                z = parentZ + (z - parentZ) * visualScale;
+            }
 
             pts.push(new THREE.Vector3(x, y, z));
         }
@@ -50,9 +65,17 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
     // Create a tube geometry for clickable orbit path
     const tubeGeometry = useMemo(() => {
         const curve = new THREE.CatmullRomCurve3(points, true); // true = closed curve
-        // Increased radius from 0.005 to 0.03 for easier clicking
-        return new THREE.TubeGeometry(curve, 200, 0.03, 8, true);
+        // Much smaller radius - just enough for clicking, not covering objects
+        return new THREE.TubeGeometry(curve, 200, 0.002, 8, true);
     }, [points]);
+
+    // CRITICAL: Dispose geometries on unmount to prevent memory leaks
+    useEffect(() => {
+        return () => {
+            lineGeometry.dispose();
+            tubeGeometry.dispose();
+        };
+    }, [lineGeometry, tubeGeometry]);
 
     return (
         <group>
@@ -104,18 +127,28 @@ export function OrbitPath({ elements, color, opacity = 0.25, parentBody, parentS
                             color,
                             transparent: true,
                             opacity: isSelected ? opacity * 4 : opacity, // Much brighter when selected
-                            depthWrite: true,
-                            depthTest: true,
+                            depthWrite: false, // Don't write to depth buffer - prevents disappearing from certain angles
+                            depthTest: true, // Still test against depth - renders behind objects correctly
                         })
                     )
                 }
             />
 
-            {/* Additional glow effect when selected - visible tube */}
+            {/* Additional glow effect when selected - thin visible line, not covering tube */}
             {isSelected && (
-                <mesh geometry={tubeGeometry}>
-                    <meshBasicMaterial color={color} transparent opacity={0.3} />
-                </mesh>
+                <primitive
+                    object={
+                        new THREE.Line(
+                            lineGeometry,
+                            new THREE.LineBasicMaterial({
+                                color,
+                                transparent: true,
+                                opacity: 0.6,
+                                linewidth: 2, // Note: linewidth doesn't work on most platforms, but we try
+                            })
+                        )
+                    }
+                />
             )}
         </group>
     );
