@@ -156,7 +156,11 @@ function BodyMesh({
     const meshRef = useRef<THREE.Mesh>(null);
     const trailRef = useRef<THREE.BufferGeometry>(null);
     const trailPositions = useRef<THREE.Vector3[]>([]);
-    const maxTrailLength = 200; // Reduced from 500 to prevent memory issues with 50+ bodies
+
+    // Adaptive trail length: shorter for satellites to reduce memory with 50+ bodies
+    const isSatellite = parentIndices.get(body) !== undefined;
+    const maxTrailLength = isSatellite ? 100 : 200;
+
     const [hovered, setHovered] = useState(false);
     const lastClickTimeRef = useRef<number>(0);
     const singleClickTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -164,6 +168,10 @@ function BodyMesh({
     const frameCountRef = useRef<number>(0);
     const { camera } = useThree();
     const [cameraDistance, setCameraDistance] = useState<number>(0);
+
+    // CRITICAL: Reuse Vector3 objects to prevent memory allocation every frame
+    const tempVec3 = useRef<THREE.Vector3>(new THREE.Vector3());
+    const bodyPosVec3 = useRef<THREE.Vector3>(new THREE.Vector3());
 
     // Use apophisElements if provided, otherwise use body's orbital elements
     const currentElements = useMemo(() => apophisElements || body.orbitalElements, [apophisElements, body.orbitalElements]);
@@ -212,15 +220,16 @@ function BodyMesh({
         if (meshRef.current) {
             meshRef.current.position.set(positionAU[0], positionAU[1], positionAU[2]);
 
-            // Calculate distance from camera to this body
-            const bodyPos = new THREE.Vector3(positionAU[0], positionAU[1], positionAU[2]);
-            const dist = camera.position.distanceTo(bodyPos);
+            // Calculate distance from camera to this body - REUSE Vector3 object
+            bodyPosVec3.current.set(positionAU[0], positionAU[1], positionAU[2]);
+            const dist = camera.position.distanceTo(bodyPosVec3.current);
             setCameraDistance(dist);
 
             // Update trail
             if (index > 0 && showTrail) {
                 // Don't show trail for Sun
-                const currentPos = new THREE.Vector3(positionAU[0], positionAU[1], positionAU[2]);
+                // REUSE Vector3 object instead of creating new one every frame
+                tempVec3.current.set(positionAU[0], positionAU[1], positionAU[2]);
 
                 // Detect orbital elements change (for Apophis when controls are adjusted)
                 const activeElements = apophisElements || body.orbitalElements;
@@ -240,15 +249,21 @@ function BodyMesh({
                 }
 
                 // Detect scenario change: if position jumped more than 1.0 AU, clear trail
-                if (previousPositionRef.current && currentPos.distanceTo(previousPositionRef.current) > 1.0) {
+                if (previousPositionRef.current && tempVec3.current.distanceTo(previousPositionRef.current) > 1.0) {
                     trailPositions.current = [];
                 }
-                previousPositionRef.current = currentPos.clone();
+
+                // Update previous position - reuse existing object or create new one
+                if (!previousPositionRef.current) {
+                    previousPositionRef.current = new THREE.Vector3();
+                }
+                previousPositionRef.current.copy(tempVec3.current);
 
                 // Only add new position if it's different enough from the last one
                 const lastPos = trailPositions.current[trailPositions.current.length - 1];
-                if (!lastPos || currentPos.distanceTo(lastPos) > 0.0001) {
-                    trailPositions.current.push(currentPos);
+                if (!lastPos || tempVec3.current.distanceTo(lastPos) > 0.0001) {
+                    // Create NEW Vector3 for trail array (must be unique object)
+                    trailPositions.current.push(tempVec3.current.clone());
 
                     if (trailPositions.current.length > maxTrailLength) {
                         trailPositions.current.shift();
@@ -265,7 +280,9 @@ function BodyMesh({
                     if (requiredSize > currentBufferSize) {
                         // Buffer too small - need to recreate geometry
                         trailRef.current.dispose();
-                        trailRef.current.copy(new THREE.BufferGeometry().setFromPoints(trailPositions.current));
+                        const newGeometry = new THREE.BufferGeometry().setFromPoints(trailPositions.current);
+                        trailRef.current.copy(newGeometry);
+                        newGeometry.dispose(); // CRITICAL: Dispose temporary geometry
                     } else {
                         // Buffer large enough - update in place
                         const positions = trailRef.current.attributes.position.array as Float32Array;
