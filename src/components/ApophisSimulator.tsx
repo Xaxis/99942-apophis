@@ -35,7 +35,7 @@ export default function ApophisSimulator() {
         enablePerturbations: true,
     });
 
-    // Apophis orbital elements from NASA JPL Small-Body Database (Epoch: 2460200.5 JD)
+    // Apophis orbital elements from NASA JPL Horizons (Epoch: 2459215.5 JD = 2021-Jan-01.0 TDB)
     const [apophisElements, setApophisElements] = useState<OrbitalElements>({
         semiMajorAxis: APOPHIS.orbitalElements!.semiMajorAxis,
         eccentricity: APOPHIS.orbitalElements!.eccentricity,
@@ -75,9 +75,8 @@ export default function ApophisSimulator() {
     // Initialize simulation
     useEffect(() => {
         // Calculate time offset from epoch to current date
-        // Epoch: 2460200.5 JD = September 13, 2023
-        // Current: January 31, 2026
-        const epochJD = 2460200.5;
+        // Epoch: 2459215.5 JD = 2021-Jan-01.0 TDB (NASA JPL Horizons JPL#220)
+        const epochJD = 2459215.5;
         const currentDate = new Date();
         const currentJD = currentDate.getTime() / 86400000 + 2440587.5; // Convert to Julian Date
         const daysSinceEpoch = currentJD - epochJD;
@@ -123,11 +122,14 @@ export default function ApophisSimulator() {
             lastTime = currentAnimationTime;
 
             const currentConfig = configRef.current;
-            const simulationDelta = deltaTime * currentConfig.timeScale;
+
+            // Calculate signed time step based on timeScale direction
+            const timeDirection = Math.sign(currentConfig.timeScale);
+            const signedTimeStep = currentConfig.timeStep * timeDirection;
 
             // Step simulation
             if (currentConfig.enablePerturbations) {
-                simulatorRef.current!.step(currentConfig.timeStep);
+                simulatorRef.current!.step(signedTimeStep);
 
                 // After N-body step, update satellites using Kepler mechanics
                 // (N-body forces from Sun would rip moons away from their planets)
@@ -164,7 +166,7 @@ export default function ApophisSimulator() {
                 simulatorRef.current!.resetStates(newStates);
             }
 
-            simulationTimeRef.current += currentConfig.timeStep;
+            simulationTimeRef.current += signedTimeStep;
 
             // Update states
             const states = simulatorRef.current!.getStates();

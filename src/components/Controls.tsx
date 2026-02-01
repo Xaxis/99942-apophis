@@ -160,7 +160,7 @@ export function Controls({
                         <ControlSlider
                             label="Time Scale"
                             value={config.timeScale}
-                            min={1}
+                            min={-1000}
                             max={1000}
                             step={1}
                             onChange={(v) => handleConfigChange("timeScale", v)}

@@ -545,14 +545,16 @@ export const APOPHIS: CelestialBody = {
     mass: 6.1e10, // kg - estimated from ~370m diameter and assumed density
     radius: 0.185, // km - radius (~370m diameter)
     color: 0x8b7355,
-    // Orbital elements from NASA JPL Small-Body Database (Epoch: 2460200.5 JD)
+    // Orbital elements from NASA JPL Horizons (Epoch: 2459215.5 JD = 2021-Jan-01.0 TDB)
+    // Solution JPL#220 (latest as of 2024-Jun-25)
+    // Perihelion: 2020-Sep-08.5394224627 (T = 2459101.0394224627 JD)
     orbitalElements: {
-        semiMajorAxis: 0.9227, // AU - NASA JPL verified
-        eccentricity: 0.1914, // NASA JPL verified
-        inclination: 3.34, // degrees - NASA JPL verified
-        longitudeOfAscendingNode: 203.96, // degrees - NASA JPL verified
-        argumentOfPeriapsis: 126.6, // degrees - NASA JPL verified
-        meanAnomaly: 142.86, // degrees - NASA JPL verified (for epoch 2460200.5 JD)
+        semiMajorAxis: 0.9225071817289903, // AU - NASA JPL Horizons JPL#220
+        eccentricity: 0.1915216893501022, // NASA JPL Horizons JPL#220
+        inclination: 3.336751320066756, // degrees - NASA JPL Horizons JPL#220
+        longitudeOfAscendingNode: 204.0389272089208, // degrees - NASA JPL Horizons JPL#220
+        argumentOfPeriapsis: 126.6520518368553, // degrees - NASA JPL Horizons JPL#220
+        meanAnomaly: 127.3225632013606, // degrees - NASA JPL Horizons JPL#220 at epoch 2021-Jan-01
     },
 };
 
@@ -564,12 +566,12 @@ export const PRESET_SIMULATIONS: PresetSimulation[] = [
         name: "Current Orbit (Safe)",
         description: "Apophis's actual current orbital parameters from NASA JPL. No impact risk for at least 100 years.",
         elements: {
-            semiMajorAxis: 0.9227, // NASA JPL verified
-            eccentricity: 0.1914,
-            inclination: 3.34,
-            longitudeOfAscendingNode: 203.96,
-            argumentOfPeriapsis: 126.6,
-            meanAnomaly: 142.86,
+            semiMajorAxis: 0.9225071817289903, // NASA JPL Horizons JPL#220
+            eccentricity: 0.1915216893501022, // NASA JPL Horizons JPL#220
+            inclination: 3.336751320066756,
+            longitudeOfAscendingNode: 204.0389272089208, // NASA JPL Horizons JPL#220
+            argumentOfPeriapsis: 126.6520518368553, // NASA JPL Horizons JPL#220
+            meanAnomaly: 127.3225632013606, // NASA JPL Horizons JPL#220 at epoch 2021-Jan-01
         },
         riskLevel: "safe",
     },

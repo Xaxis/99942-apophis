@@ -41,7 +41,7 @@ const PARAMETER_INFO: Record<string, { title: string; description: string }> = {
     timeScale: {
         title: "Time Scale",
         description:
-            "Controls how fast the simulation runs compared to real time.\n\n• 1× = Real-time (very slow for orbital mechanics)\n• 100× = 100 seconds of simulation per real second\n• 1000× = Fast-forward through months in minutes\n\nHigher values let you observe long-term orbital evolution and close approaches that would take years in real time. Lower values provide smoother animation for detailed observation of specific events.",
+            "Controls how fast the simulation runs compared to real time. Supports both forward and reverse time.\n\n• Positive values: Time moves forward\n  - 1× = Real-time (very slow for orbital mechanics)\n  - 100× = 100 seconds of simulation per real second\n  - 1000× = Fast-forward through months in minutes\n\n• Negative values: Time moves backward\n  - -100× = Rewind 100 seconds per real second\n  - -1000× = Rewind through months in minutes\n\nUse negative values to go back in time and observe past orbital configurations or verify historical close approaches.",
     },
     timeStep: {
         title: "Time Step (Δt)",
